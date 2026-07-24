@@ -65,6 +65,7 @@ type platformClient interface {
 	OntologyFastLookupSuggestions(context.Context, string, string) ([]platformapi.OntologyFastLookupSuggestion, error)
 	OntologyRows(context.Context, string, string, int, int) (*platformapi.DatasetQueryResult, error)
 	OntologyFollowLink(context.Context, string, string, string, string, int, int) (*platformapi.DatasetQueryResult, error)
+	OntologyFollowIncomingLink(context.Context, string, string, string, string, string, int, int) (*platformapi.DatasetQueryResult, error)
 	Datasets(context.Context, string) ([]platformapi.Dataset, error)
 	Dataset(context.Context, string, string) (*platformapi.Dataset, error)
 	DatasetRows(context.Context, string, string, int, int) (*platformapi.DatasetQueryResult, error)

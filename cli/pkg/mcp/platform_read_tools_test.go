@@ -81,6 +81,10 @@ func (f *fakePlatformClient) OntologyFollowLink(ctx context.Context, projectID, 
 	return &platformapi.DatasetQueryResult{Columns: []string{"id"}, Rows: [][]string{{"2"}}, Total: 1}, nil
 }
 
+func (f *fakePlatformClient) OntologyFollowIncomingLink(ctx context.Context, projectID, entityID, pk, sourceEntityID, linkAPIName string, pageSize, pageOffset int) (*platformapi.DatasetQueryResult, error) {
+	return &platformapi.DatasetQueryResult{}, nil
+}
+
 func (f *fakePlatformClient) Datasets(ctx context.Context, projectID string) ([]platformapi.Dataset, error) {
 	return []platformapi.Dataset{{ID: "dataset-1", ProjectID: projectID, Name: "Customers"}}, nil
 }
