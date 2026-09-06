@@ -34,6 +34,17 @@ _, err = users.CreateMany(ctx, rows, "import-42") // idempotency key
 err = users.Update(ctx, "u_123", map[string]any{"plan": "pro"})
 orders, err := users.FollowLink(ctx, "u_123", "orders", 50, 0)
 
+// Behavior-managed workflow:
+order := client.Ontology("Order")
+capabilities, err := order.Capabilities(ctx, "order_123")
+version := int(capabilities["recordVersion"].(float64))
+_, err = order.PreviewAction(ctx, "approve", "order_123", map[string]any{"note": "Looks good"})
+_, err = order.Action(ctx, "approve", "order_123", map[string]any{"note": "Looks good"}, whodb.ActionOptions{
+    ExpectedVersion: &version,
+    IdempotencyKey:  "approve-order-123",
+})
+history, err := order.ActionExecutions(ctx, "order_123", 50)
+
 // Iterate everything, page by page:
 err = users.Pages(ctx, whodb.ListOptions{PageSize: 500}, func(rows []whodb.Row) bool {
     fmt.Println(len(rows))

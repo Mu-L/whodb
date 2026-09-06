@@ -33,6 +33,16 @@ await users.createMany(rows, { idempotencyKey: 'import-42' });
 await users.update('u_123', { plan: 'pro' });
 const orders = await users.followLink('u_123', 'orders');
 
+// Behavior-managed workflow:
+const order = whodb.ontology('Order');
+const capabilities = await order.capabilities('order_123');
+await order.previewAction('approve', 'order_123', { note: 'Looks good' });
+await order.action('approve', 'order_123', { note: 'Looks good' }, {
+  expectedVersion: capabilities.recordVersion ?? undefined,
+  idempotencyKey: 'approve-order-123',
+});
+const history = await order.actionExecutions('order_123');
+
 // Iterate everything, page by page:
 for await (const page of users.list({ pageSize: 500 }).pages()) {
   console.log(page.rows.length);

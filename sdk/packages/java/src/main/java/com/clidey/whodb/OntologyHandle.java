@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.clidey.whodb;
 
 import com.clidey.whodb.gen.Operations;
@@ -26,6 +42,14 @@ public final class OntologyHandle {
         /** Options with no filter and default paging. */
         public static ListOptions defaults() {
             return new ListOptions(null, null, 0, 0);
+        }
+    }
+
+    /** Concurrency and retry controls for a named ontology action. */
+    public record ActionOptions(Integer expectedVersion, String idempotencyKey) {
+        /** Options without concurrency or idempotency controls. */
+        public static ActionOptions defaults() {
+            return new ActionOptions(null, null);
         }
     }
 
@@ -143,6 +167,73 @@ public final class OntologyHandle {
             }
             offset += pageSize;
         }
+    }
+
+    /** Computes the current actor's readable fields and allowed actions. */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> capabilities(Object recordKey) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("projectId", client.projectId());
+        variables.put("ontologyId", entityId());
+        if (recordKey != null) {
+            variables.put("recordKey", String.valueOf(recordKey));
+        }
+        ManifestCheck.warnIfFlagged("OntologyRecordCapabilities");
+        Object result = client.execute(Operations.ontologyRecordCapabilitiesRequest(variables));
+        return result instanceof Map<?, ?> ? (Map<String, Object>) result : Map.of();
+    }
+
+    /** Dry-runs a named action without persisting records, effects, or events. */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> previewAction(String action, Object recordKey, Map<String, Object> values) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("projectId", client.projectId());
+        input.put("ontologyId", entityId());
+        input.put("action", action);
+        input.put("values", values == null ? Map.of() : values);
+        if (recordKey != null) {
+            input.put("recordKey", String.valueOf(recordKey));
+        }
+        ManifestCheck.warnIfFlagged("PreviewOntologyAction");
+        Object result = client.execute(Operations.previewOntologyActionRequest(Map.of("input", input)));
+        return result instanceof Map<?, ?> ? (Map<String, Object>) result : Map.of();
+    }
+
+    /** Executes a named action with full behavior enforcement. */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> action(
+        String action, Object recordKey, Map<String, Object> values, ActionOptions options
+    ) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("projectId", client.projectId());
+        input.put("ontologyId", entityId());
+        input.put("action", action);
+        input.put("values", values == null ? Map.of() : values);
+        if (recordKey != null) {
+            input.put("recordKey", String.valueOf(recordKey));
+        }
+        ActionOptions resolved = options == null ? ActionOptions.defaults() : options;
+        if (resolved.expectedVersion() != null) {
+            input.put("expectedVersion", resolved.expectedVersion());
+        }
+        if (resolved.idempotencyKey() != null && !resolved.idempotencyKey().isEmpty()) {
+            input.put("idempotencyKey", resolved.idempotencyKey());
+        }
+        ManifestCheck.warnIfFlagged("ExecuteOntologyAction");
+        Object result = client.execute(Operations.executeOntologyActionRequest(Map.of("input", input)));
+        return result instanceof Map<?, ?> ? (Map<String, Object>) result : Map.of();
+    }
+
+    /** Lists recent named-action executions for one record. */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> actionExecutions(Object recordKey, int limit) {
+        ManifestCheck.warnIfFlagged("OntologyActionExecutions");
+        Object result = client.execute(Operations.ontologyActionExecutionsRequest(Map.of(
+            "projectId", client.projectId(),
+            "ontologyId", entityId(),
+            "recordKey", String.valueOf(recordKey),
+            "limit", limit == 0 ? 50 : limit)));
+        return result instanceof List<?> ? (List<Map<String, Object>>) result : List.of();
     }
 
     /**

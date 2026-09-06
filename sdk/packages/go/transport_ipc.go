@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package whodb
 
 import (
@@ -183,6 +199,41 @@ func (t *IpcTransport) dispatch(ctx context.Context, operation string, variables
 	case "OntologyDescribe":
 		input, _ := variables["input"].(map[string]any)
 		return t.post(ctx, "/describe", input)
+	case "OntologyRecordCapabilities":
+		entity, err := t.entityField(ctx, fmt.Sprint(variables["ontologyId"]), "apiName")
+		if err != nil {
+			return nil, err
+		}
+		return t.post(ctx, "/capabilities", map[string]any{
+			"entity": entity, "recordKey": variables["recordKey"],
+		})
+	case "PreviewOntologyAction":
+		input, _ := variables["input"].(map[string]any)
+		entity, err := t.entityField(ctx, fmt.Sprint(input["ontologyId"]), "apiName")
+		if err != nil {
+			return nil, err
+		}
+		return t.post(ctx, "/preview_action", map[string]any{
+			"entity": entity, "action": input["action"], "recordKey": input["recordKey"], "values": input["values"],
+		})
+	case "ExecuteOntologyAction":
+		input, _ := variables["input"].(map[string]any)
+		entity, err := t.entityField(ctx, fmt.Sprint(input["ontologyId"]), "apiName")
+		if err != nil {
+			return nil, err
+		}
+		return t.post(ctx, "/action", map[string]any{
+			"entity": entity, "action": input["action"], "recordKey": input["recordKey"], "values": input["values"],
+			"expectedVersion": input["expectedVersion"], "idempotencyKey": input["idempotencyKey"],
+		})
+	case "OntologyActionExecutions":
+		entity, err := t.entityField(ctx, fmt.Sprint(variables["ontologyId"]), "apiName")
+		if err != nil {
+			return nil, err
+		}
+		return t.post(ctx, "/action_executions", map[string]any{
+			"entity": entity, "recordKey": variables["recordKey"], "limit": variables["limit"],
+		})
 	case "OntologyAddRow":
 		entity, err := t.entityField(ctx, fmt.Sprint(variables["entityId"]), "apiName")
 		if err != nil {

@@ -51,6 +51,18 @@ domains:
       fastLookups:
         operation: OntologyFastLookups
         autofill: { projectId: $project }
+      capabilities:
+        operation: OntologyRecordCapabilities
+        autofill: { projectId: $project }
+      previewAction:
+        operation: PreviewOntologyAction
+        autofill: { projectId: $project }
+      action:
+        operation: ExecuteOntologyAction
+        autofill: { projectId: $project }
+      actionExecutions:
+        operation: OntologyActionExecutions
+        autofill: { projectId: $project }
       create:
         operation: OntologyAddRow
         autofill: { projectId: $project }

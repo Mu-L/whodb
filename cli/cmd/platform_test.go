@@ -306,6 +306,28 @@ func TestBuildGenericResourceVariablesInjectsProjectAndID(t *testing.T) {
 	}
 }
 
+func TestBuildGenericResourceVariablesUsesConfiguredIdentityField(t *testing.T) {
+	payload := map[string]any{"document": map[string]any{"actions": map[string]any{}}, "expectedRevision": 1}
+	spec, variables, err := buildGenericResourceVariables("proj-1", genericResourceWriteInput{
+		Resource: "ontology",
+		Action:   "save_behavior",
+		ID:       "ontology-1",
+	}, payload)
+	if err != nil {
+		t.Fatalf("buildGenericResourceVariables() error = %v", err)
+	}
+	if spec.Mutation != "SaveBehavior" {
+		t.Fatalf("mutation = %q, want SaveBehavior", spec.Mutation)
+	}
+	input, ok := variables["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("variables = %#v, want input object", variables)
+	}
+	if input["projectId"] != "proj-1" || input["ontologyId"] != "ontology-1" || input["id"] != nil {
+		t.Fatalf("input = %#v, want projectId/ontologyId and no id", input)
+	}
+}
+
 func TestBuildGenericResourceVariablesSupportsHyphenatedTokens(t *testing.T) {
 	spec, variables, err := buildGenericResourceVariables("proj-1", genericResourceWriteInput{
 		Resource: "ai-provider",

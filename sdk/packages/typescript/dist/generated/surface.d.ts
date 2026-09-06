@@ -101,6 +101,38 @@ export declare const surface: {
             readonly rename: {};
             readonly paginated: null;
         };
+        readonly capabilities: {
+            readonly operation: "OntologyRecordCapabilities";
+            readonly autofill: {
+                readonly projectId: "$project";
+            };
+            readonly rename: {};
+            readonly paginated: null;
+        };
+        readonly previewAction: {
+            readonly operation: "PreviewOntologyAction";
+            readonly autofill: {
+                readonly projectId: "$project";
+            };
+            readonly rename: {};
+            readonly paginated: null;
+        };
+        readonly action: {
+            readonly operation: "ExecuteOntologyAction";
+            readonly autofill: {
+                readonly projectId: "$project";
+            };
+            readonly rename: {};
+            readonly paginated: null;
+        };
+        readonly actionExecutions: {
+            readonly operation: "OntologyActionExecutions";
+            readonly autofill: {
+                readonly projectId: "$project";
+            };
+            readonly rename: {};
+            readonly paginated: null;
+        };
         readonly create: {
             readonly operation: "OntologyAddRow";
             readonly autofill: {

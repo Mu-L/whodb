@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { Transport } from './transport.js';
 import * as ops from './generated/operations.js';
 import type {
@@ -5,6 +21,8 @@ import type {
   OntologySimilarInput, OntologySimilarityResult, OntologyQueryInput,
   OntologyQuerySortInput, OntologyAggregateMetricInput, WhereCondition,
   SortCondition, RecordInput, OntologyCreateRowInput, OntologyAddRowsResult,
+  ExecuteOntologyActionResult, OntologyActionExecution, OntologyActionPreview,
+  OntologyRecordCapabilities,
 } from './generated/types.js';
 import { hydrateRows, propertyTypesOf, type PropertyTypes, type Row } from './hydrate.js';
 import { ListCall, type Page } from './pagination.js';
@@ -31,6 +49,12 @@ export interface AggregateOptions {
   where?: WhereCondition;
   sort?: SortCondition[];
   pageSize?: number;
+}
+
+/** Concurrency and retry controls for a named ontology action. */
+export interface ActionOptions {
+  expectedVersion?: number;
+  idempotencyKey?: string;
 }
 
 /**
@@ -226,6 +250,70 @@ export class OntologyHandle {
     return ops.ontologyFastLookups(this.transport, {
       projectId: await this.projectId(),
       entityId: entity.id,
+    });
+  }
+
+  /** Computes the current actor's readable fields and allowed actions. */
+  async capabilities(recordKey?: string | number): Promise<OntologyRecordCapabilities> {
+    const entity = await this.entityMeta();
+    warnIfFlagged('OntologyRecordCapabilities');
+    return ops.ontologyRecordCapabilities(this.transport, {
+      projectId: await this.projectId(),
+      ontologyId: entity.id,
+      recordKey: recordKey === undefined ? null : String(recordKey),
+    });
+  }
+
+  /** Dry-runs a named action without persisting records, effects, or events. */
+  async previewAction(
+    action: string,
+    recordKey: string | number | null,
+    values: Record<string, unknown> = {},
+  ): Promise<OntologyActionPreview> {
+    const entity = await this.entityMeta();
+    warnIfFlagged('PreviewOntologyAction');
+    return ops.previewOntologyAction(this.transport, {
+      input: {
+        projectId: await this.projectId(),
+        ontologyId: entity.id,
+        recordKey: recordKey === null ? null : String(recordKey),
+        action,
+        values,
+      },
+    });
+  }
+
+  /** Executes a named action with full behavior enforcement. */
+  async action(
+    action: string,
+    recordKey: string | number | null,
+    values: Record<string, unknown> = {},
+    options: ActionOptions = {},
+  ): Promise<ExecuteOntologyActionResult> {
+    const entity = await this.entityMeta();
+    warnIfFlagged('ExecuteOntologyAction');
+    return ops.executeOntologyAction(this.transport, {
+      input: {
+        projectId: await this.projectId(),
+        ontologyId: entity.id,
+        recordKey: recordKey === null ? null : String(recordKey),
+        action,
+        values,
+        expectedVersion: options.expectedVersion ?? null,
+        idempotencyKey: options.idempotencyKey ?? null,
+      },
+    });
+  }
+
+  /** Lists recent named-action executions for one record. */
+  async actionExecutions(recordKey: string | number, limit = 50): Promise<OntologyActionExecution[]> {
+    const entity = await this.entityMeta();
+    warnIfFlagged('OntologyActionExecutions');
+    return ops.ontologyActionExecutions(this.transport, {
+      projectId: await this.projectId(),
+      ontologyId: entity.id,
+      recordKey: String(recordKey),
+      limit,
     });
   }
 

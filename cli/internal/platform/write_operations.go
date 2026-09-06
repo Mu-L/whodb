@@ -140,6 +140,8 @@ var platformMutationSpecs = map[string]platformMutationSpec{
 	"OntologyAddRow":           mutationSpecWithDirect("OntologyAddRow", "$projectId: ID!, $entityId: ID!, $values: [RecordInput!]!", "projectId: $projectId, entityId: $entityId, values: $values", statusResponseFields),
 	"OntologyUpdateRow":        mutationSpecWithDirect("OntologyUpdateRow", "$projectId: ID!, $entityId: ID!, $values: [RecordInput!]!, $updatedColumns: [String!]!", "projectId: $projectId, entityId: $entityId, values: $values, updatedColumns: $updatedColumns", statusResponseFields),
 	"OntologyDeleteRow":        mutationSpecWithDirect("OntologyDeleteRow", "$projectId: ID!, $entityId: ID!, $values: [RecordInput!]!", "projectId: $projectId, entityId: $entityId, values: $values", statusResponseFields),
+	"SaveBehavior":             mutationSpecWithInput("SaveBehavior", "SaveBehaviorInput", ontologyBehaviorFields),
+	"ExecuteOntologyAction":    mutationSpecWithInput("ExecuteOntologyAction", "ExecuteOntologyActionInput", executeOntologyActionResultFields),
 	"CreateDataset":            mutationSpecWithInput("CreateDataset", "CreateDatasetInput", datasetFields),
 	"UpdateDataset":            mutationSpecWithInput("UpdateDataset", "UpdateDatasetInput", datasetFields),
 	"DeleteDataset":            mutationSpecWithProjectID("DeleteDataset", statusResponseFields),
@@ -281,6 +283,25 @@ const functionTestResultFields = `
   durationMs
   success
   error
+`
+
+const ontologyBehaviorFields = `
+  id
+  ontologyId
+  document
+  revision
+  createdAt
+  updatedAt
+`
+
+const executeOntologyActionResultFields = `
+  executionId
+  allowed
+  denialCode
+  recordChanges
+  recordVersion
+  emittedEventIds
+  validationErrors
 `
 
 func mutationSpecWithInput(operation, inputType, fields string) platformMutationSpec {

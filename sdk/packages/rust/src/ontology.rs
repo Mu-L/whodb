@@ -1,3 +1,17 @@
+// Copyright 2026 Clidey, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! The client.ontology("User") facade: reads and record writes for one
 //! ontology entity, addressed by apiName. Mirrors the other SDKs; languages
 //! differ in ergonomics, never in behavior (conformance-pinned).
@@ -25,6 +39,15 @@ pub struct ListOptions {
     pub page_size: usize,
     /// Page offset.
     pub offset: usize,
+}
+
+/// Concurrency and retry controls for a named ontology action.
+#[derive(Default)]
+pub struct ActionOptions {
+    /// Expected current record version for optimistic concurrency.
+    pub expected_version: Option<i64>,
+    /// Stable key that makes retries return the original execution result.
+    pub idempotency_key: Option<String>,
 }
 
 /// Handle for one ontology entity.
@@ -177,6 +200,96 @@ impl<'client> OntologyHandle<'client> {
             }
             offset += page_size;
         }
+    }
+
+    /// Computes the current actor's readable fields and allowed actions.
+    pub fn capabilities(&self, record_key: Option<&str>) -> Result<Value> {
+        let entity_id = self.entity_id()?;
+        warn_if_flagged("OntologyRecordCapabilities");
+        let project_id = self.client.project_id()?;
+        let mut variables = Map::new();
+        variables.insert("projectId".to_string(), Value::String(project_id));
+        variables.insert("ontologyId".to_string(), Value::String(entity_id));
+        if let Some(key) = record_key {
+            variables.insert("recordKey".to_string(), Value::String(key.to_string()));
+        }
+        self.client
+            .execute(ops::ontology_record_capabilities_request(variables))
+    }
+
+    /// Dry-runs a named action without persisting records, effects, or events.
+    pub fn preview_action(
+        &self,
+        action: &str,
+        record_key: Option<&str>,
+        values: &Map<String, Value>,
+    ) -> Result<Value> {
+        let entity_id = self.entity_id()?;
+        warn_if_flagged("PreviewOntologyAction");
+        let project_id = self.client.project_id()?;
+        let mut input = Map::new();
+        input.insert("projectId".to_string(), Value::String(project_id));
+        input.insert("ontologyId".to_string(), Value::String(entity_id));
+        input.insert("action".to_string(), Value::String(action.to_string()));
+        input.insert("values".to_string(), Value::Object(values.clone()));
+        if let Some(key) = record_key {
+            input.insert("recordKey".to_string(), Value::String(key.to_string()));
+        }
+        let mut variables = Map::new();
+        variables.insert("input".to_string(), Value::Object(input));
+        self.client
+            .execute(ops::preview_ontology_action_request(variables))
+    }
+
+    /// Executes a named action with full behavior enforcement.
+    pub fn action(
+        &self,
+        action: &str,
+        record_key: Option<&str>,
+        values: &Map<String, Value>,
+        options: &ActionOptions,
+    ) -> Result<Value> {
+        let entity_id = self.entity_id()?;
+        warn_if_flagged("ExecuteOntologyAction");
+        let project_id = self.client.project_id()?;
+        let mut input = Map::new();
+        input.insert("projectId".to_string(), Value::String(project_id));
+        input.insert("ontologyId".to_string(), Value::String(entity_id));
+        input.insert("action".to_string(), Value::String(action.to_string()));
+        input.insert("values".to_string(), Value::Object(values.clone()));
+        if let Some(key) = record_key {
+            input.insert("recordKey".to_string(), Value::String(key.to_string()));
+        }
+        if let Some(version) = options.expected_version {
+            input.insert("expectedVersion".to_string(), Value::from(version));
+        }
+        if let Some(key) = &options.idempotency_key {
+            input.insert("idempotencyKey".to_string(), Value::String(key.clone()));
+        }
+        let mut variables = Map::new();
+        variables.insert("input".to_string(), Value::Object(input));
+        self.client
+            .execute(ops::execute_ontology_action_request(variables))
+    }
+
+    /// Lists recent named-action executions for one record.
+    pub fn action_executions(&self, record_key: &str, limit: usize) -> Result<Value> {
+        let entity_id = self.entity_id()?;
+        warn_if_flagged("OntologyActionExecutions");
+        let project_id = self.client.project_id()?;
+        let mut variables = Map::new();
+        variables.insert("projectId".to_string(), Value::String(project_id));
+        variables.insert("ontologyId".to_string(), Value::String(entity_id));
+        variables.insert(
+            "recordKey".to_string(),
+            Value::String(record_key.to_string()),
+        );
+        variables.insert(
+            "limit".to_string(),
+            Value::from(if limit == 0 { 50 } else { limit }),
+        );
+        self.client
+            .execute(ops::ontology_action_executions_request(variables))
     }
 
     /// Inserts one record. Values are field name/value pairs.

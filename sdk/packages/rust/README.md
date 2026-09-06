@@ -15,7 +15,7 @@ Requires Rust ≥ 1.75. Synchronous API; two dependencies (`serde_json`, `ureq`)
 
 ```rust
 use serde_json::{json, Map};
-use whodb_sdk::{Client, Config, ListOptions};
+use whodb_sdk::{ActionOptions, Client, Config, ListOptions};
 
 // Production: API key (create one in org settings → API keys).
 let client = Client::new(Config {
@@ -38,6 +38,21 @@ users.create(&Map::from_iter([("email".into(), json!("a@b.co"))]))?;
 users.create_many(&rows_to_insert, Some("import-42"))?; // idempotency key
 users.update("u_123", &Map::from_iter([("plan".into(), json!("pro"))]))?;
 let orders = users.follow_link("u_123", "orders", 50, 0)?;
+
+// Behavior-managed workflow:
+let order = client.ontology("Order");
+let capabilities = order.capabilities(Some("order_123"))?;
+order.preview_action("approve", Some("order_123"), &Map::new())?;
+order.action(
+    "approve",
+    Some("order_123"),
+    &Map::new(),
+    &ActionOptions {
+        expected_version: capabilities.get("recordVersion").and_then(Value::as_i64),
+        idempotency_key: Some("approve-order-123".to_string()),
+    },
+)?;
+let history = order.action_executions("order_123", 50)?;
 
 // Iterate everything, page by page:
 users.pages(&ListOptions { page_size: 500, ..Default::default() }, |rows| {

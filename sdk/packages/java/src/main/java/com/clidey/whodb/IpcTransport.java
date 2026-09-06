@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.clidey.whodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -238,6 +254,43 @@ public final class IpcTransport implements Transport {
             }
             case "OntologyDescribe":
                 return post("/describe", variables.getOrDefault("input", Map.of()));
+            case "OntologyRecordCapabilities": {
+                String entity = entityField(String.valueOf(variables.get("ontologyId")), "apiName");
+                Map<String, Object> body = new HashMap<>();
+                body.put("entity", entity);
+                body.put("recordKey", variables.get("recordKey"));
+                return post("/capabilities", body);
+            }
+            case "PreviewOntologyAction": {
+                Map<String, Object> input = (Map<String, Object>) variables.getOrDefault("input", Map.of());
+                String entity = entityField(String.valueOf(input.get("ontologyId")), "apiName");
+                Map<String, Object> body = new HashMap<>();
+                body.put("entity", entity);
+                body.put("action", input.get("action"));
+                body.put("recordKey", input.get("recordKey"));
+                body.put("values", input.getOrDefault("values", Map.of()));
+                return post("/preview_action", body);
+            }
+            case "ExecuteOntologyAction": {
+                Map<String, Object> input = (Map<String, Object>) variables.getOrDefault("input", Map.of());
+                String entity = entityField(String.valueOf(input.get("ontologyId")), "apiName");
+                Map<String, Object> body = new HashMap<>();
+                body.put("entity", entity);
+                body.put("action", input.get("action"));
+                body.put("recordKey", input.get("recordKey"));
+                body.put("values", input.getOrDefault("values", Map.of()));
+                body.put("expectedVersion", input.get("expectedVersion"));
+                body.put("idempotencyKey", input.get("idempotencyKey"));
+                return post("/action", body);
+            }
+            case "OntologyActionExecutions": {
+                String entity = entityField(String.valueOf(variables.get("ontologyId")), "apiName");
+                Map<String, Object> body = new HashMap<>();
+                body.put("entity", entity);
+                body.put("recordKey", variables.get("recordKey"));
+                body.put("limit", variables.get("limit"));
+                return post("/action_executions", body);
+            }
             case "OntologyAddRow": {
                 String entity = entityField(String.valueOf(variables.get("entityId")), "apiName");
                 post("/create", Map.of("entity", entity, "data", recordInputsToData(variables.get("values"))));

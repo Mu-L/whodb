@@ -7,6 +7,6 @@ export declare const embeddedManifest: Record<string, {
     note?: string;
 }>;
 /** SHA-256 of the platform-manifest.json this SDK was generated from. */
-export declare const manifestHash = "4b84678f5fe7d777fbd4c4b2a93dff64f4c8951978ce68006ddc3a0e25c6942f";
+export declare const manifestHash = "88b7c615aa77e420862d5992c859fe1ee350ca3a256f26410e7787ffeb964462";
 /** Manifest protocol version this SDK understands. */
 export declare const manifestProtocolVersion = "1";

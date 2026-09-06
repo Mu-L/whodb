@@ -1,3 +1,17 @@
+// Copyright 2026 Clidey, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! IPC transport: runs the same facades inside the WhoDB Functions runtime.
 //!
 //! Only the ontology operations are available; others return
@@ -156,6 +170,68 @@ impl IpcTransport {
             "OntologyDescribe" => {
                 let input = variables.get("input").cloned().unwrap_or_else(|| json!({}));
                 self.post("/describe", &input)
+            }
+            "OntologyRecordCapabilities" => {
+                let entity_id = variables
+                    .get("ontologyId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let entity = self.entity_field(entity_id, "apiName")?;
+                self.post(
+                    "/capabilities",
+                    &json!({"entity": entity, "recordKey": variables.get("recordKey")}),
+                )
+            }
+            "PreviewOntologyAction" => {
+                let input = variables.get("input").cloned().unwrap_or_else(|| json!({}));
+                let entity_id = input
+                    .get("ontologyId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let entity = self.entity_field(entity_id, "apiName")?;
+                self.post(
+                    "/preview_action",
+                    &json!({
+                        "entity": entity,
+                        "action": input.get("action"),
+                        "recordKey": input.get("recordKey"),
+                        "values": input.get("values"),
+                    }),
+                )
+            }
+            "ExecuteOntologyAction" => {
+                let input = variables.get("input").cloned().unwrap_or_else(|| json!({}));
+                let entity_id = input
+                    .get("ontologyId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let entity = self.entity_field(entity_id, "apiName")?;
+                self.post(
+                    "/action",
+                    &json!({
+                        "entity": entity,
+                        "action": input.get("action"),
+                        "recordKey": input.get("recordKey"),
+                        "values": input.get("values"),
+                        "expectedVersion": input.get("expectedVersion"),
+                        "idempotencyKey": input.get("idempotencyKey"),
+                    }),
+                )
+            }
+            "OntologyActionExecutions" => {
+                let entity_id = variables
+                    .get("ontologyId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let entity = self.entity_field(entity_id, "apiName")?;
+                self.post(
+                    "/action_executions",
+                    &json!({
+                        "entity": entity,
+                        "recordKey": variables.get("recordKey"),
+                        "limit": variables.get("limit"),
+                    }),
+                )
             }
             "OntologyAddRow" => {
                 let entity = entity_of("entityId")?;

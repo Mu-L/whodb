@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -29,7 +45,10 @@ before(async () => {
   address = `127.0.0.1:${server.address().port}`;
 });
 
-after(() => server.close());
+after(async () => {
+  server.closeAllConnections();
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
 
 const makeTransport = () => new IpcTransport({ address, jobId: 'job-1', token: 'tok-1' });
 
@@ -80,6 +99,40 @@ test('entity-ID operations resolve apiName via cached /entities', async () => {
   const updateRequest = received.find(r => r.path === '/update');
   assert.equal(updateRequest.body.pk, 'u_1');
   assert.deepEqual(updateRequest.body.data, { email: 'x@y.z' });
+});
+
+test('behavior operations map entity IDs and action options to IPC endpoints', async () => {
+  received.length = 0;
+  responses.set('/entities', [{ id: 'ent-order', apiName: 'Order', primaryKey: 'id' }]);
+  responses.set('/capabilities', { currentState: 'pending', recordVersion: 7, actions: [] });
+  responses.set('/preview_action', { allowed: true, proposedChanges: { status: 'approved' } });
+  responses.set('/action', { allowed: true, recordVersion: 8 });
+  responses.set('/action_executions', [{ actionName: 'approve' }]);
+  const transport = makeTransport();
+
+  await transport.execute('OntologyRecordCapabilities', '', {
+    projectId: 'p', ontologyId: 'ent-order', recordKey: 'order-1',
+  });
+  await transport.execute('PreviewOntologyAction', '', {
+    input: { projectId: 'p', ontologyId: 'ent-order', action: 'approve', recordKey: 'order-1', values: { note: 'ok' } },
+  });
+  await transport.execute('ExecuteOntologyAction', '', {
+    input: { projectId: 'p', ontologyId: 'ent-order', action: 'approve', recordKey: 'order-1', values: { note: 'ok' }, expectedVersion: 7, idempotencyKey: 'approve-1' },
+  });
+  await transport.execute('OntologyActionExecutions', '', {
+    projectId: 'p', ontologyId: 'ent-order', recordKey: 'order-1', limit: 20,
+  });
+
+  assert.deepEqual(received.find(r => r.path === '/capabilities').body, { entity: 'Order', recordKey: 'order-1' });
+  assert.deepEqual(received.find(r => r.path === '/preview_action').body, {
+    entity: 'Order', action: 'approve', recordKey: 'order-1', values: { note: 'ok' },
+  });
+  assert.deepEqual(received.find(r => r.path === '/action').body, {
+    entity: 'Order', action: 'approve', recordKey: 'order-1', values: { note: 'ok' }, expectedVersion: 7, idempotencyKey: 'approve-1',
+  });
+  assert.deepEqual(received.find(r => r.path === '/action_executions').body, {
+    entity: 'Order', recordKey: 'order-1', limit: 20,
+  });
 });
 
 test('unmapped operations throw TransportCapabilityError', async () => {

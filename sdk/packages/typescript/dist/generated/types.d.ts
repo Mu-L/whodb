@@ -1,3 +1,4 @@
+export type ActionExecutionStatus = 'committed' | 'failed' | 'denied';
 export interface AtomicWhereCondition {
     ColumnType: string;
     Key: string;
@@ -30,6 +31,7 @@ export interface Dataset {
     description: string;
     schema: Array<ColumnDef>;
     schemaMode: string;
+    storageMode: string;
     ownerId: string;
     rowCount: number;
     sizeBytes: number;
@@ -40,6 +42,46 @@ export interface DatasetQueryResult {
     columns: Array<string>;
     rows: Array<Array<string>>;
     total: number;
+}
+export interface ExecuteOntologyActionInput {
+    projectId: string;
+    ontologyId: string;
+    recordKey?: string | null;
+    action: string;
+    values: unknown;
+    expectedVersion?: number | null;
+    idempotencyKey?: string | null;
+}
+export interface ExecuteOntologyActionResult {
+    executionId: string;
+    allowed: boolean;
+    denialCode?: string | null;
+    recordChanges?: unknown | null;
+    recordVersion?: number | null;
+    emittedEventIds?: Array<string> | null;
+    validationErrors?: Array<string> | null;
+}
+export interface OntologyActionCapability {
+    apiName: string;
+    allowed: boolean;
+    denialCode?: string | null;
+}
+export interface OntologyActionExecution {
+    id: string;
+    ontologyId: string;
+    recordKey: string;
+    actionName: string;
+    behaviorVersionId: string;
+    actorId: string;
+    status: ActionExecutionStatus;
+    resultSummary?: unknown | null;
+    createdAt: unknown;
+}
+export interface OntologyActionPreview {
+    allowed: boolean;
+    denialCode?: string | null;
+    proposedChanges?: unknown | null;
+    emittedEvents?: Array<string> | null;
 }
 export interface OntologyAddRowsResult {
     inserted: number;
@@ -111,6 +153,8 @@ export interface OntologyLink {
     displayName: string;
     pluralDisplayName: string;
     reverseDisplayName: string;
+    targetKind: string;
+    targetReferenceId?: string | null;
 }
 export type OntologyLinkCardinality = 'ONE_TO_ONE' | 'ONE_TO_MANY' | 'MANY_TO_ONE' | 'MANY_TO_MANY';
 export interface OntologyObjectType {
@@ -181,6 +225,14 @@ export interface OntologyQuerySortInput {
     field: string;
     desc?: boolean | null;
 }
+export interface OntologyRecordCapabilities {
+    behaviorVersion: number;
+    recordVersion?: number | null;
+    currentState?: string | null;
+    readableProperties: Array<string>;
+    writableProperties: Array<string>;
+    actions: Array<OntologyActionCapability>;
+}
 export interface OntologySimilarInput {
     entityId: string;
     rowId: string;
@@ -229,6 +281,13 @@ export interface PlatformSource {
     lastEventAt?: string | null;
     ingestionError: string;
     eventsReceived: string;
+}
+export interface PreviewOntologyActionInput {
+    projectId: string;
+    ontologyId: string;
+    recordKey?: string | null;
+    action: string;
+    values: unknown;
 }
 export interface Project {
     id: string;

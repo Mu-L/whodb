@@ -9,6 +9,7 @@ export type { Row } from './hydrate.js';
 export type { Page } from './pagination.js';
 export { ListCall } from './pagination.js';
 export { OntologyHandle } from './ontology.js';
+export type { ActionOptions } from './ontology.js';
 export { DatasetHandle } from './dataset.js';
 export { SourceHandle } from './source.js';
 export { FilesHandle } from './files.js';

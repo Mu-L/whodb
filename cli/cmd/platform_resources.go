@@ -1610,10 +1610,11 @@ func runPlatformResourceWrite(cmd *cobra.Command, input genericResourceWriteInpu
 	if err != nil {
 		return err
 	}
-	_, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
+	org, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
 	if err != nil {
 		return err
 	}
+	session.Client.SetWorkspaceContext(org.ID, project.ID)
 	if strings.TrimSpace(input.ID) != "" {
 		if normalizePlatformResourceToken(input.Resource) == "file" && normalizePlatformResourceToken(input.Action) == "promote_to_dataset" {
 			if resolvedID, err := resolvePlatformResourceID(ctx, session, project.ID, input.Resource, input.ID); err == nil {
@@ -1681,10 +1682,11 @@ func runPlatformFunctionLifecycleWrite(cmd *cobra.Command, functionRef, action s
 	if err != nil {
 		return err
 	}
-	_, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
+	org, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
 	if err != nil {
 		return err
 	}
+	session.Client.SetWorkspaceContext(org.ID, project.ID)
 	functionID, err := resolvePlatformResourceID(ctx, session, project.ID, "function", functionRef)
 	if err != nil {
 		return err
@@ -1770,10 +1772,11 @@ func runPlatformFunctionDeployWrite(cmd *cobra.Command, functionRef, mutation, a
 	if err != nil {
 		return err
 	}
-	_, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
+	org, project, err := resolvePlatformProject(ctx, session, platformResourceOrg, platformResourceProject)
 	if err != nil {
 		return err
 	}
+	session.Client.SetWorkspaceContext(org.ID, project.ID)
 	functionID, err := resolvePlatformResourceID(ctx, session, project.ID, "function", functionRef)
 	if err != nil {
 		return err
@@ -2864,7 +2867,11 @@ func buildGenericResourceVariables(projectID string, input genericResourceWriteI
 					payload["fileId"] = id
 				}
 			} else {
-				payload["id"] = id
+				identityField := spec.IdentityField
+				if identityField == "" {
+					identityField = "id"
+				}
+				payload[identityField] = id
 			}
 		}
 		if spec.Action == "move" && spec.Resource == "file" {

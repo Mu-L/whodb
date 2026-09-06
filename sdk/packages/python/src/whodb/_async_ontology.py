@@ -1,3 +1,17 @@
+# Copyright 2026 Clidey, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Async twin of OntologyHandle. Same behavior, awaitable surface."""
 
 from __future__ import annotations
@@ -104,6 +118,86 @@ class AsyncOntologyHandle:
             if len(rows) < page_size:
                 return
             offset += page_size
+
+    async def capabilities(self, record_key: Any | None = None) -> dict:
+        """Compute the current actor's readable fields and allowed actions."""
+        entity = await self.entity_meta()
+        warn_if_flagged("OntologyRecordCapabilities")
+        return await self._execute(
+            ops.ontology_record_capabilities_request(
+                {
+                    "projectId": await self._project_id(),
+                    "ontologyId": entity["id"],
+                    "recordKey": None if record_key is None else str(record_key),
+                }
+            )
+        )
+
+    async def preview_action(
+        self,
+        action: str,
+        record_key: Any | None,
+        values: dict[str, Any] | None = None,
+    ) -> dict:
+        """Dry-run a named action without persisting records, effects, or events."""
+        entity = await self.entity_meta()
+        warn_if_flagged("PreviewOntologyAction")
+        return await self._execute(
+            ops.preview_ontology_action_request(
+                {
+                    "input": {
+                        "projectId": await self._project_id(),
+                        "ontologyId": entity["id"],
+                        "recordKey": None if record_key is None else str(record_key),
+                        "action": action,
+                        "values": values or {},
+                    }
+                }
+            )
+        )
+
+    async def action(
+        self,
+        action: str,
+        record_key: Any | None,
+        values: dict[str, Any] | None = None,
+        *,
+        expected_version: int | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict:
+        """Execute a named action with full behavior enforcement."""
+        entity = await self.entity_meta()
+        warn_if_flagged("ExecuteOntologyAction")
+        return await self._execute(
+            ops.execute_ontology_action_request(
+                {
+                    "input": {
+                        "projectId": await self._project_id(),
+                        "ontologyId": entity["id"],
+                        "recordKey": None if record_key is None else str(record_key),
+                        "action": action,
+                        "values": values or {},
+                        "expectedVersion": expected_version,
+                        "idempotencyKey": idempotency_key,
+                    }
+                }
+            )
+        )
+
+    async def action_executions(self, record_key: Any, limit: int = 50) -> list[dict]:
+        """List recent named-action executions for one record."""
+        entity = await self.entity_meta()
+        warn_if_flagged("OntologyActionExecutions")
+        return await self._execute(
+            ops.ontology_action_executions_request(
+                {
+                    "projectId": await self._project_id(),
+                    "ontologyId": entity["id"],
+                    "recordKey": str(record_key),
+                    "limit": limit,
+                }
+            )
+        )
 
     async def create(self, values: dict[str, Any]) -> None:
         """Insert one record."""

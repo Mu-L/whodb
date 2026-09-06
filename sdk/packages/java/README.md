@@ -41,6 +41,16 @@ users.createMany(rowsToInsert, "import-42");               // idempotency key
 users.update("u_123", Map.of("plan", "pro"));
 List<Map<String, Object>> orders = users.followLink("u_123", "orders", 50, 0);
 
+// Behavior-managed workflow:
+OntologyHandle order = client.ontology("Order");
+Map<String, Object> capabilities = order.capabilities("order_123");
+order.previewAction("approve", "order_123", Map.of("note", "Looks good"));
+order.action("approve", "order_123", Map.of("note", "Looks good"),
+    new OntologyHandle.ActionOptions(
+        ((Number) capabilities.get("recordVersion")).intValue(),
+        "approve-order-123"));
+List<Map<String, Object>> history = order.actionExecutions("order_123", 50);
+
 // Iterate everything, page by page:
 for (List<Map<String, Object>> page :
         users.pages(new OntologyHandle.ListOptions(null, null, 500, 0))) {

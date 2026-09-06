@@ -32,6 +32,17 @@ users.create_many(rows, idempotency_key="import-42")
 users.update("u_123", {"plan": "pro"})
 orders = users.follow_link("u_123", "orders").all()
 
+# Behavior-managed workflow:
+order = whodb.ontology("Order")
+capabilities = order.capabilities("order_123")
+order.preview_action("approve", "order_123", {"note": "Looks good"})
+order.action(
+    "approve", "order_123", {"note": "Looks good"},
+    expected_version=capabilities.get("recordVersion"),
+    idempotency_key="approve-order-123",
+)
+history = order.action_executions("order_123")
+
 # Iterate everything, page by page:
 for page in users.list(page_size=500).pages():
     print(len(page.rows))

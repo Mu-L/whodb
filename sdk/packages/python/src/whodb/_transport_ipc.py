@@ -1,3 +1,17 @@
+# Copyright 2026 Clidey, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """IPC transport: runs the same facades inside the WhoDB Functions runtime.
 
 The runtime exposes an in-container HTTP server (unix socket in Docker, TCP in
@@ -150,6 +164,51 @@ class IpcTransport:
                 "sort": variables.get("sort"),
                 "pageSize": variables.get("pageSize"),
                 "offset": variables.get("pageOffset"),
+            },
+        )
+
+    def _op_OntologyRecordCapabilities(self, variables: dict) -> Any:
+        return self._post(
+            "/capabilities",
+            {
+                "entity": self._entity_name(variables.get("ontologyId", "")),
+                "recordKey": variables.get("recordKey"),
+            },
+        )
+
+    def _op_PreviewOntologyAction(self, variables: dict) -> Any:
+        action_input = variables.get("input") or {}
+        return self._post(
+            "/preview_action",
+            {
+                "entity": self._entity_name(action_input.get("ontologyId", "")),
+                "action": action_input.get("action"),
+                "recordKey": action_input.get("recordKey"),
+                "values": action_input.get("values") or {},
+            },
+        )
+
+    def _op_ExecuteOntologyAction(self, variables: dict) -> Any:
+        action_input = variables.get("input") or {}
+        return self._post(
+            "/action",
+            {
+                "entity": self._entity_name(action_input.get("ontologyId", "")),
+                "action": action_input.get("action"),
+                "recordKey": action_input.get("recordKey"),
+                "values": action_input.get("values") or {},
+                "expectedVersion": action_input.get("expectedVersion"),
+                "idempotencyKey": action_input.get("idempotencyKey"),
+            },
+        )
+
+    def _op_OntologyActionExecutions(self, variables: dict) -> Any:
+        return self._post(
+            "/action_executions",
+            {
+                "entity": self._entity_name(variables.get("ontologyId", "")),
+                "recordKey": variables.get("recordKey"),
+                "limit": variables.get("limit"),
             },
         )
 

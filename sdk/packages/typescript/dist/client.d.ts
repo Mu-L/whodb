@@ -17,7 +17,7 @@ import type { OntologyObjectType, PlatformSource } from './generated/types.js';
  */
 export declare class WhoDB {
     /** SHA-256 of the platform manifest this SDK release was generated from. */
-    static readonly manifestHash = "4b84678f5fe7d777fbd4c4b2a93dff64f4c8951978ce68006ddc3a0e25c6942f";
+    static readonly manifestHash = "88b7c615aa77e420862d5992c859fe1ee350ca3a256f26410e7787ffeb964462";
     /** This SDK package's version. */
     static readonly version = "0.0.0";
     private readonly transport;

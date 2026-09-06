@@ -770,6 +770,94 @@
       "returns": "OntologyDescription!"
     },
     {
+      "name": "OntologyBehavior",
+      "kind": "Query",
+      "args": [
+        {
+          "name": "projectId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "ontologyId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "OntologyBehavior"
+    },
+    {
+      "name": "OntologyRecordCapabilities",
+      "kind": "Query",
+      "args": [
+        {
+          "name": "projectId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "ontologyId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "recordKey",
+          "type": "String",
+          "required": false,
+          "list": false
+        }
+      ],
+      "returns": "OntologyRecordCapabilities!"
+    },
+    {
+      "name": "PreviewOntologyAction",
+      "kind": "Query",
+      "args": [
+        {
+          "name": "input",
+          "type": "PreviewOntologyActionInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "OntologyActionPreview!"
+    },
+    {
+      "name": "OntologyActionExecutions",
+      "kind": "Query",
+      "args": [
+        {
+          "name": "projectId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "ontologyId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "recordKey",
+          "type": "String",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "limit",
+          "type": "Int",
+          "required": false,
+          "list": false
+        }
+      ],
+      "returns": "[OntologyActionExecution!]!"
+    },
+    {
       "name": "ProjectDatasets",
       "kind": "Query",
       "args": [
@@ -1483,11 +1571,11 @@
       "returns": "[UserAccessEntry!]!"
     },
     {
-      "name": "Packages",
+      "name": "OrganizationPackages",
       "kind": "Query",
       "args": [
         {
-          "name": "projectId",
+          "name": "organizationId",
           "type": "ID",
           "required": true,
           "list": false
@@ -1496,11 +1584,11 @@
       "returns": "[Package!]!"
     },
     {
-      "name": "PackageDetail",
+      "name": "OrganizationPackage",
       "kind": "Query",
       "args": [
         {
-          "name": "projectId",
+          "name": "organizationId",
           "type": "ID",
           "required": true,
           "list": false
@@ -1522,6 +1610,25 @@
           "name": "projectId",
           "type": "ID",
           "required": true,
+          "list": false
+        }
+      ],
+      "returns": "[PackageInstallation!]!"
+    },
+    {
+      "name": "OrganizationPackageInstallations",
+      "kind": "Query",
+      "args": [
+        {
+          "name": "organizationId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "packageId",
+          "type": "ID",
+          "required": false,
           "list": false
         }
       ],
@@ -2485,6 +2592,32 @@
       "returns": "StatusResponse!"
     },
     {
+      "name": "SaveBehavior",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "SaveBehaviorInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "OntologyBehavior!"
+    },
+    {
+      "name": "ExecuteOntologyAction",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "ExecuteOntologyActionInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "ExecuteOntologyActionResult!"
+    },
+    {
       "name": "CreateOntologyFastLookup",
       "kind": "Mutation",
       "args": [
@@ -2623,6 +2756,25 @@
         },
         {
           "name": "id",
+          "type": "ID",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "StatusResponse!"
+    },
+    {
+      "name": "DatasetPurgeData",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "projectId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        },
+        {
+          "name": "datasetId",
           "type": "ID",
           "required": true,
           "list": false
@@ -3353,6 +3505,19 @@
       "returns": "Package!"
     },
     {
+      "name": "DeletePackage",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "packageId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "StatusResponse!"
+    },
+    {
       "name": "InstallPackage",
       "kind": "Mutation",
       "args": [
@@ -3364,6 +3529,19 @@
         }
       ],
       "returns": "PackageOperationResult!"
+    },
+    {
+      "name": "InstallPackageDeployment",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "InstallPackageDeploymentInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "PackageDeploymentResult!"
     },
     {
       "name": "InstallSharedPackage",
@@ -3442,6 +3620,58 @@
         }
       ],
       "returns": "PackageShare!"
+    },
+    {
+      "name": "RevokePackageShare",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "shareId",
+          "type": "ID",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "StatusResponse!"
+    },
+    {
+      "name": "ReviewPackage",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "ReviewPackageInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "PackageReview!"
+    },
+    {
+      "name": "AddPackageMedia",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "AddPackageMediaInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "PackageMedia!"
+    },
+    {
+      "name": "AddPackageChangelog",
+      "kind": "Mutation",
+      "args": [
+        {
+          "name": "input",
+          "type": "AddPackageChangelogInput",
+          "required": true,
+          "list": false
+        }
+      ],
+      "returns": "PackageChangelogEntry!"
     },
     {
       "name": "PromoteObject",

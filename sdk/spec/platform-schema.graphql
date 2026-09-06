@@ -1017,8 +1017,25 @@ type Mutation {
 }
 
 # --- source: ee/core/graph/schema.extension.graphqls ---
+# Copyright 2026 Clidey, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Enterprise Edition Schema Extensions
 # This file extends the core GraphQL schema with enterprise-specific types
+
+scalar JSON
+scalar Time
 
 type CodeCompletionResult {
   Completions: [String!]!
@@ -1526,6 +1543,9 @@ type OntologyLink {
   displayName:              String!
   pluralDisplayName:        String!
   reverseDisplayName:       String!
+  """Cross-project link fields. targetKind is 'local' (default) or 'reference'."""
+  targetKind:               String!
+  targetReferenceId:        ID
 }
 
 type OntologyObjectType {
@@ -1634,6 +1654,8 @@ input OntologyLinkInput {
   displayName:              String!
   pluralDisplayName:        String!
   reverseDisplayName:       String!
+  targetKind:               String
+  targetReferenceId:        ID
 }
 
 input CreateOntologyInput {
@@ -1818,6 +1840,7 @@ type Dataset {
   description: String!
   schema:      [ColumnDef!]!
   schemaMode:  String!
+  storageMode: String!
   ownerId:     ID!
   rowCount:    Int!
   sizeBytes:   Int!
@@ -1847,6 +1870,7 @@ input CreateDatasetInput {
   sourceObjectRef: SourceObjectRefInput
   columns:         [ColumnDefInput!]
   schemaMode:      String
+  storageMode:     String
 }
 
 input UpdateDatasetInput {
@@ -1974,6 +1998,7 @@ extend type Mutation {
   CreateDataset(input: CreateDatasetInput!): Dataset!
   UpdateDataset(input: UpdateDatasetInput!): Dataset!
   DeleteDataset(projectId: ID!, id: ID!):    StatusResponse!
+  DatasetPurgeData(projectId: ID!, datasetId: ID!): StatusResponse!
   RestoreDataset(projectId: ID!, id: ID!): StatusResponse!
   PurgeDataset(projectId: ID!, id: ID!): StatusResponse!
   RestoreDatasetVersionToDraft(projectId: ID!, datasetId: ID!, version: Int!): Dataset!
@@ -2076,6 +2101,7 @@ input PromoteFileInput {
   projectId:   ID!
   datasetName: String!
   description: String!
+  storageMode: String
   sheetIndex:  Int
   columnMap:   [ColumnMappingInput!]!
 }
@@ -2649,7 +2675,6 @@ type ProjectResourceSummary {
   apps:          [ResourceRef!]!
   ontologyTypes: [ResourceRef!]!
   files:         [ResourceRef!]!
-  packages:      [ResourceRef!]!
 }
 
 type ShareResult {
@@ -2698,7 +2723,9 @@ extend type Mutation {
   PromoteObject(input: PromoteObjectInput!): ObjectVersion!
   RollbackObject(input: RollbackObjectInput!): ActiveProdVersion!
   CreatePackage(input: CreatePackageInput!): Package!
+  DeletePackage(packageId: ID!): StatusResponse!
   InstallPackage(input: InstallPackageInput!): PackageOperationResult!
+  InstallPackageDeployment(input: InstallPackageDeploymentInput!): PackageDeploymentResult!
   InstallSharedPackage(input: SharedPackageOperationInput!): PackageOperationResult!
   UpdatePackageInstallation(input: UpdatePackageInstallationInput!): PackageOperationResult!
   UninstallPackage(input: UninstallPackageInput!): StatusResponse!
@@ -2742,6 +2769,7 @@ type ActiveProdVersion {
 
 type Package {
   id: ID!
+  sourceProjectId: ID!
   name: String!
   version: String!
   channel: String!
@@ -2753,6 +2781,7 @@ type Package {
   visibility: String!
   items: [PackageItem!]!
   requirements: [PackageRequirement!]!
+  teams: [PackageTeam!]!
   stats: PackageStats!
   reviews: [PackageReview!]!
   media: [PackageMedia!]!
@@ -2763,6 +2792,8 @@ type Package {
 }
 
 type PackageItem {
+  sourceProjectId: ID!
+  sourceProjectName: String!
   objectId: ID!
   objectType: String!
   name: String!
@@ -2780,6 +2811,18 @@ type PackageRequirement {
   description: String!
   required: Boolean!
   metadata: String!
+}
+
+type PackageTeam {
+  teamName: String!
+  sourceTeamId: ID!
+  permissions: [PackageTeamPermission!]!
+}
+
+type PackageTeamPermission {
+  sourceObjectId: ID!
+  sourceObjectType: String!
+  relation: String!
 }
 
 type PackageRequirementBinding {
@@ -2804,8 +2847,10 @@ type PackageConflict {
 }
 
 type PackagePreviewItem {
+  sourceProjectId: ID!
   objectId: ID!
   objectType: String!
+  name: String!
   version: Int!
   role: String!
   visibility: String!
@@ -2817,6 +2862,7 @@ type PackagePreviewItem {
 type PackagePreview {
   items: [PackagePreviewItem!]!
   requirements: [PackageRequirement!]!
+  teams: [PackageTeam!]!
   issues: [PackageValidationIssue!]!
   conflicts: [PackageConflict!]!
 }
@@ -2833,7 +2879,9 @@ type PackageObjectMapping {
 
 type PackageInstallation {
   id: ID!
+  sourceOrgId: ID
   sourceProjectId: ID!
+  sourceScopeProjectId: ID
   targetProjectId: ID!
   packageId: ID!
   packageName: String!
@@ -2872,6 +2920,8 @@ type PackageLibraryEntry {
 
 type PackageUpdateInfo {
   available: Boolean!
+  sourceAvailable: Boolean!
+  sourceRemovedAt: String
   currentPackageId: ID!
   currentVersion: String!
   latestPackageId: ID
@@ -2917,6 +2967,21 @@ type PackageOperationResult {
   items: [PackageObjectMapping!]!
 }
 
+type PackageDeploymentTargetResult {
+  projectId: ID!
+  sourceProjectId: ID
+  projectName: String!
+  projectCreated: Boolean!
+  installation: PackageInstallation
+  error: String
+}
+
+type PackageDeploymentResult {
+  results: [PackageDeploymentTargetResult!]!
+  successCount: Int!
+  failureCount: Int!
+}
+
 input PromoteObjectInput {
   projectId: ID!
   objectId: ID!
@@ -2932,7 +2997,6 @@ input RollbackObjectInput {
 }
 
 input CreatePackageInput {
-  projectId: ID!
   name: String!
   version: String
   channel: String
@@ -2941,10 +3005,12 @@ input CreatePackageInput {
   importable: Boolean
   visibility: String
   includeDependencies: Boolean
+  teamIds: [ID!]
   items: [PackageItemInput!]!
 }
 
 input PackageItemInput {
+  sourceProjectId: ID!
   objectId: ID!
   objectType: VersionableObjectType!
   # Omit to snapshot the current draft into a new immutable package version.
@@ -2962,10 +3028,24 @@ input PackageRequirementBindingInput {
 }
 
 input InstallPackageInput {
-  sourceProjectId: ID!
   targetProjectId: ID!
   packageId: ID!
   bindings: [PackageRequirementBindingInput!]
+  sourceScopeProjectId: ID
+}
+
+input PackageDeploymentTargetInput {
+  projectId: ID
+  sourceProjectId: ID
+  createProjectName: String
+  bindings: [PackageRequirementBindingInput!]
+}
+
+input InstallPackageDeploymentInput {
+  organizationId: ID!
+  packageId: ID
+  shareToken: String
+  targets: [PackageDeploymentTargetInput!]!
 }
 
 input UpdatePackageInstallationInput {
@@ -2976,7 +3056,6 @@ input UpdatePackageInstallationInput {
 }
 
 input ImportPackageInput {
-  sourceProjectId: ID!
   targetProjectId: ID!
   packageId: ID!
   bindings: [PackageRequirementBindingInput!]
@@ -2986,22 +3065,21 @@ input SharedPackageOperationInput {
   shareToken: String!
   targetProjectId: ID!
   bindings: [PackageRequirementBindingInput!]
+  sourceScopeProjectId: ID
 }
 
 input CreatePackageShareInput {
-  sourceProjectId: ID!
   packageId: ID!
+  sourceProjectId: ID!
 }
 
 input ReviewPackageInput {
-  sourceProjectId: ID!
   packageId: ID!
   rating: Int!
   body: String
 }
 
 input AddPackageMediaInput {
-  sourceProjectId: ID!
   packageId: ID!
   kind: String!
   url: String!
@@ -3009,7 +3087,6 @@ input AddPackageMediaInput {
 }
 
 input AddPackageChangelogInput {
-  sourceProjectId: ID!
   packageId: ID!
   version: String!
   title: String!
@@ -3026,9 +3103,10 @@ extend type Query {
   ObjectVersions(projectId: ID!, objectId: ID!, objectType: VersionableObjectType!): [ObjectVersion!]!
   ActiveProdVersion(projectId: ID!, objectId: ID!, objectType: VersionableObjectType!): ActiveProdVersion
   ProjectActiveProdVersions(projectId: ID!): [ActiveProdVersion!]!
-  Packages(projectId: ID!): [Package!]!
-  PackageDetail(projectId: ID!, packageId: ID!): Package
+  OrganizationPackages(organizationId: ID!): [Package!]!
+  OrganizationPackage(organizationId: ID!, packageId: ID!): Package
   PackageInstallations(projectId: ID!): [PackageInstallation!]!
+  OrganizationPackageInstallations(organizationId: ID!, packageId: ID): [PackageInstallation!]!
   PackageInstallationUpdate(projectId: ID!, installationId: ID!): PackageUpdateInfo!
   SharedPackage(shareToken: String!): SharedPackage!
   PackageLibrary(search: String): [PackageLibraryEntry!]!
@@ -3037,4 +3115,174 @@ extend type Query {
   PreviewImportPackage(input: ImportPackageInput!): PackagePreview!
   PreviewSharedPackageInstall(input: SharedPackageOperationInput!): PackagePreview!
   PreviewSharedPackageImport(input: SharedPackageOperationInput!): PackagePreview!
+}
+
+# ─── Cross-Project Ontology Sharing ──────────────────────────────────────────
+
+enum SharedOntologyVisibility { organization  allowlist }
+enum OntologyReferenceStatus  { active  broken  revoked }
+
+type SharedOntology {
+  id:           ID!
+  projectId:    ID!
+  ontologyId:   ID!
+  visibility:   SharedOntologyVisibility!
+  """The ontology entity metadata (resolved from the owner project)."""
+  ontology:     OntologyObjectType
+  consumers:    [OntologyReferenceConsumer!]!
+  createdAt:    Time!
+}
+
+type OntologyReferenceConsumer {
+  projectId:    ID!
+  referenceId:  ID!
+  alias:        String!
+  status:       OntologyReferenceStatus!
+}
+
+type OntologyReference {
+  id:                ID!
+  consumerProjectId: ID!
+  alias:             String!
+  ownerProjectId:    ID!
+  ontologyId:        ID!
+  status:            OntologyReferenceStatus!
+  """The target ontology entity metadata (resolved from the owner project)."""
+  ontology:          OntologyObjectType
+  createdAt:         Time!
+}
+
+type OntologyReferenceImpact {
+  referenceId:    ID!
+  dependentLinks: Int!
+  dependentApps:  Int!
+  dependentFuncs: Int!
+  dependentXfms:  Int!
+  dependentBehavs: Int!
+}
+
+input ShareOntologyInput {
+  projectId:         ID!
+  ontologyId:        ID!
+  visibility:        SharedOntologyVisibility!
+  allowedProjectIds: [ID!]
+}
+
+input CreateOntologyReferenceInput {
+  consumerProjectId: ID!
+  ownerProjectId:    ID!
+  ontologyId:        ID!
+  alias:             String!
+}
+
+extend type Query {
+  """Ontologies shared by a specific project."""
+  SharedOntologies(projectId: ID!): [SharedOntology!]!
+  """Shared ontologies visible to a consumer project from other projects."""
+  DiscoverSharedOntologies(consumerProjectId: ID!): [SharedOntology!]!
+  """Cross-project ontology references owned by a project."""
+  OntologyReferences(projectId: ID!): [OntologyReference!]!
+  """Impact analysis for removing an ontology reference."""
+  OntologyReferenceImpact(referenceId: ID!): OntologyReferenceImpact!
+}
+
+extend type Mutation {
+  ShareOntology(input: ShareOntologyInput!): SharedOntology!
+  UnshareOntology(projectId: ID!, ontologyId: ID!): StatusResponse!
+  CreateOntologyReference(input: CreateOntologyReferenceInput!): OntologyReference!
+  RemoveOntologyReference(referenceId: ID!): StatusResponse!
+}
+
+# ─── Ontology Behaviours ─────────────────────────────────────────────────────
+
+enum ActionExecutionStatus { committed  failed  denied }
+
+type OntologyBehavior {
+  id:             ID!
+  ontologyId:     ID!
+  document:       JSON
+  revision:       Int!
+  createdAt:      Time!
+  updatedAt:      Time!
+}
+
+type OntologyRecordCapabilities {
+  behaviorVersion:    Int!
+  recordVersion:      Int
+  currentState:       String
+  readableProperties: [String!]!
+  writableProperties: [String!]!
+  actions:            [OntologyActionCapability!]!
+}
+
+type OntologyActionCapability {
+  apiName:    String!
+  allowed:    Boolean!
+  denialCode: String
+}
+
+type OntologyActionPreview {
+  allowed:         Boolean!
+  denialCode:      String
+  proposedChanges: JSON
+  emittedEvents:   [String!]
+}
+
+type ExecuteOntologyActionResult {
+  executionId:     ID!
+  allowed:         Boolean!
+  denialCode:      String
+  recordChanges:   JSON
+  recordVersion:   Int
+  emittedEventIds: [ID!]
+  validationErrors: [String!]
+}
+
+type OntologyActionExecution {
+  id:                ID!
+  ontologyId:        ID!
+  recordKey:         String!
+  actionName:        String!
+  behaviorVersionId: ID!
+  actorId:           ID!
+  status:            ActionExecutionStatus!
+  resultSummary:     JSON
+  createdAt:         Time!
+}
+
+input SaveBehaviorInput {
+  projectId:  ID!
+  ontologyId: ID!
+  document:   JSON!
+  expectedRevision: Int!
+}
+
+input ExecuteOntologyActionInput {
+  projectId:       ID!
+  ontologyId:      ID!
+  recordKey:       String
+  action:          String!
+  values:          JSON!
+  expectedVersion: Int
+  idempotencyKey:  String
+}
+
+input PreviewOntologyActionInput {
+  projectId:  ID!
+  ontologyId: ID!
+  recordKey:  String
+  action:     String!
+  values:     JSON!
+}
+
+extend type Query {
+  OntologyBehavior(projectId: ID!, ontologyId: ID!): OntologyBehavior
+  OntologyRecordCapabilities(projectId: ID!, ontologyId: ID!, recordKey: String): OntologyRecordCapabilities!
+  PreviewOntologyAction(input: PreviewOntologyActionInput!): OntologyActionPreview!
+  OntologyActionExecutions(projectId: ID!, ontologyId: ID!, recordKey: String!, limit: Int): [OntologyActionExecution!]!
+}
+
+extend type Mutation {
+  SaveBehavior(input: SaveBehaviorInput!): OntologyBehavior!
+  ExecuteOntologyAction(input: ExecuteOntologyActionInput!): ExecuteOntologyActionResult!
 }

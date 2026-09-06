@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Command conformance is the Go SDK fixture runner: it reads fixtures as JSON
 // lines on stdin, executes each against the SDK with a mock transport, and
 // writes one JSON result line per fixture to stdout. Protocol shared with the
@@ -253,6 +269,33 @@ func runFixture(f fixture) result {
 		} else {
 			value, callErr = handle.List(ctx, listOptions)
 		}
+	case "capabilities":
+		var recordKey any
+		if len(f.Call.Args) > 0 {
+			recordKey = f.Call.Args[0]
+		}
+		value, callErr = handle.Capabilities(ctx, recordKey)
+	case "previewAction":
+		values, _ := f.Call.Args[2].(map[string]any)
+		value, callErr = handle.PreviewAction(ctx, fmt.Sprint(f.Call.Args[0]), f.Call.Args[1], values)
+	case "action":
+		values, _ := f.Call.Args[2].(map[string]any)
+		options := optionsFrom(f.Call.Args, 3)
+		actionOptions := whodb.ActionOptions{}
+		if version, ok := options["expectedVersion"].(float64); ok {
+			converted := int(version)
+			actionOptions.ExpectedVersion = &converted
+		}
+		actionOptions.IdempotencyKey, _ = options["idempotencyKey"].(string)
+		value, callErr = handle.Action(ctx, fmt.Sprint(f.Call.Args[0]), f.Call.Args[1], values, actionOptions)
+	case "actionExecutions":
+		limit := 0
+		if len(f.Call.Args) > 1 {
+			if rawLimit, ok := f.Call.Args[1].(float64); ok {
+				limit = int(rawLimit)
+			}
+		}
+		value, callErr = handle.ActionExecutions(ctx, f.Call.Args[0], limit)
 	case "create":
 		data, _ := f.Call.Args[0].(map[string]any)
 		callErr = handle.Create(ctx, data)

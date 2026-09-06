@@ -1,16 +1,16 @@
 import type { Transport } from '../transport.js';
-import type { Column, Dataset, DatasetQueryResult, OntologyAddRowsResult, OntologyAggregateMetricInput, OntologyCreateRowInput, OntologyDescribeInput, OntologyDescription, OntologyFastLookup, OntologyObjectType, OntologyQueryInput, OntologySimilarInput, OntologySimilarityResult, OntologyStatsResult, Organization, PlatformSource, Project, QueryDatasetInput, RecordInput, RowsResult, SortCondition, SourceObject, SourceObjectKind, SourceObjectRefInput, StatusResponse, WhereCondition, Workspace } from './types.js';
+import type { Column, Dataset, DatasetQueryResult, ExecuteOntologyActionInput, ExecuteOntologyActionResult, OntologyActionExecution, OntologyActionPreview, OntologyAddRowsResult, OntologyAggregateMetricInput, OntologyCreateRowInput, OntologyDescribeInput, OntologyDescription, OntologyFastLookup, OntologyObjectType, OntologyQueryInput, OntologyRecordCapabilities, OntologySimilarInput, OntologySimilarityResult, OntologyStatsResult, Organization, PlatformSource, PreviewOntologyActionInput, Project, QueryDatasetInput, RecordInput, RowsResult, SortCondition, SourceObject, SourceObjectKind, SourceObjectRefInput, StatusResponse, WhereCondition, Workspace } from './types.js';
 export interface OntologyEntitiesVars {
     projectId: string;
 }
-export declare const OntologyEntitiesDocument = "query OntologyEntities($projectId: ID!) { OntologyEntities(projectId: $projectId) { id projectId apiName displayName pluralDisplayName description primaryKey sourceId tableName schemaName storageMode provisioningStatus embeddingEnabled embeddingProperties status icon color createdAt updatedAt properties { id apiName displayName description columnName dataType arrayElementType isRequired visibility isSearchable isSortable isEditOnly sortOrder } links { id apiName targetOntologyApiName cardinality foreignKeyProperty targetForeignKeyProperty joinTable sourceColumnInJoinTable targetColumnInJoinTable displayName pluralDisplayName reverseDisplayName } } }";
+export declare const OntologyEntitiesDocument = "query OntologyEntities($projectId: ID!) { OntologyEntities(projectId: $projectId) { id projectId apiName displayName pluralDisplayName description primaryKey sourceId tableName schemaName storageMode provisioningStatus embeddingEnabled embeddingProperties status icon color createdAt updatedAt properties { id apiName displayName description columnName dataType arrayElementType isRequired visibility isSearchable isSortable isEditOnly sortOrder } links { id apiName targetOntologyApiName cardinality foreignKeyProperty targetForeignKeyProperty joinTable sourceColumnInJoinTable targetColumnInJoinTable displayName pluralDisplayName reverseDisplayName targetKind targetReferenceId } } }";
 /** Generated wire call for Query OntologyEntities. */
 export declare function ontologyEntities(transport: Transport, vars: OntologyEntitiesVars): Promise<Array<OntologyObjectType>>;
 export interface OntologyEntityVars {
     projectId: string;
     id: string;
 }
-export declare const OntologyEntityDocument = "query OntologyEntity($projectId: ID!, $id: ID!) { OntologyEntity(projectId: $projectId, id: $id) { id projectId apiName displayName pluralDisplayName description primaryKey sourceId tableName schemaName storageMode provisioningStatus embeddingEnabled embeddingProperties status icon color createdAt updatedAt properties { id apiName displayName description columnName dataType arrayElementType isRequired visibility isSearchable isSortable isEditOnly sortOrder } links { id apiName targetOntologyApiName cardinality foreignKeyProperty targetForeignKeyProperty joinTable sourceColumnInJoinTable targetColumnInJoinTable displayName pluralDisplayName reverseDisplayName } } }";
+export declare const OntologyEntityDocument = "query OntologyEntity($projectId: ID!, $id: ID!) { OntologyEntity(projectId: $projectId, id: $id) { id projectId apiName displayName pluralDisplayName description primaryKey sourceId tableName schemaName storageMode provisioningStatus embeddingEnabled embeddingProperties status icon color createdAt updatedAt properties { id apiName displayName description columnName dataType arrayElementType isRequired visibility isSearchable isSortable isEditOnly sortOrder } links { id apiName targetOntologyApiName cardinality foreignKeyProperty targetForeignKeyProperty joinTable sourceColumnInJoinTable targetColumnInJoinTable displayName pluralDisplayName reverseDisplayName targetKind targetReferenceId } } }";
 /** Generated wire call for Query OntologyEntity. */
 export declare function ontologyEntity(transport: Transport, vars: OntologyEntityVars): Promise<OntologyObjectType>;
 export interface OntologyDescribeVars {
@@ -95,6 +95,35 @@ export interface OntologyFastLookupsVars {
 export declare const OntologyFastLookupsDocument = "query OntologyFastLookups($projectId: ID!, $entityId: ID!) { OntologyFastLookups(projectId: $projectId, entityId: $entityId) { id entityId displayName fields status reason createdAt updatedAt } }";
 /** Generated wire call for Query OntologyFastLookups. */
 export declare function ontologyFastLookups(transport: Transport, vars: OntologyFastLookupsVars): Promise<Array<OntologyFastLookup>>;
+export interface OntologyRecordCapabilitiesVars {
+    projectId: string;
+    ontologyId: string;
+    recordKey?: string | null;
+}
+export declare const OntologyRecordCapabilitiesDocument = "query OntologyRecordCapabilities($projectId: ID!, $ontologyId: ID!, $recordKey: String) { OntologyRecordCapabilities(projectId: $projectId, ontologyId: $ontologyId, recordKey: $recordKey) { behaviorVersion recordVersion currentState readableProperties writableProperties actions { apiName allowed denialCode } } }";
+/** Generated wire call for Query OntologyRecordCapabilities. */
+export declare function ontologyRecordCapabilities(transport: Transport, vars: OntologyRecordCapabilitiesVars): Promise<OntologyRecordCapabilities>;
+export interface PreviewOntologyActionVars {
+    input: PreviewOntologyActionInput;
+}
+export declare const PreviewOntologyActionDocument = "query PreviewOntologyAction($input: PreviewOntologyActionInput!) { PreviewOntologyAction(input: $input) { allowed denialCode proposedChanges emittedEvents } }";
+/** Generated wire call for Query PreviewOntologyAction. */
+export declare function previewOntologyAction(transport: Transport, vars: PreviewOntologyActionVars): Promise<OntologyActionPreview>;
+export interface ExecuteOntologyActionVars {
+    input: ExecuteOntologyActionInput;
+}
+export declare const ExecuteOntologyActionDocument = "mutation ExecuteOntologyAction($input: ExecuteOntologyActionInput!) { ExecuteOntologyAction(input: $input) { executionId allowed denialCode recordChanges recordVersion emittedEventIds validationErrors } }";
+/** Generated wire call for Mutation ExecuteOntologyAction. */
+export declare function executeOntologyAction(transport: Transport, vars: ExecuteOntologyActionVars): Promise<ExecuteOntologyActionResult>;
+export interface OntologyActionExecutionsVars {
+    projectId: string;
+    ontologyId: string;
+    recordKey: string;
+    limit?: number | null;
+}
+export declare const OntologyActionExecutionsDocument = "query OntologyActionExecutions($projectId: ID!, $ontologyId: ID!, $recordKey: String!, $limit: Int) { OntologyActionExecutions(projectId: $projectId, ontologyId: $ontologyId, recordKey: $recordKey, limit: $limit) { id ontologyId recordKey actionName behaviorVersionId actorId status resultSummary createdAt } }";
+/** Generated wire call for Query OntologyActionExecutions. */
+export declare function ontologyActionExecutions(transport: Transport, vars: OntologyActionExecutionsVars): Promise<Array<OntologyActionExecution>>;
 export interface OntologyAddRowVars {
     projectId: string;
     entityId: string;
@@ -132,7 +161,7 @@ export declare function ontologyDeleteRow(transport: Transport, vars: OntologyDe
 export interface ProjectDatasetsVars {
     projectId: string;
 }
-export declare const ProjectDatasetsDocument = "query ProjectDatasets($projectId: ID!) { ProjectDatasets(projectId: $projectId) { id projectId sourceId name description schema { name type isNullable isPrimary } schemaMode ownerId rowCount sizeBytes createdAt updatedAt } }";
+export declare const ProjectDatasetsDocument = "query ProjectDatasets($projectId: ID!) { ProjectDatasets(projectId: $projectId) { id projectId sourceId name description schema { name type isNullable isPrimary } schemaMode storageMode ownerId rowCount sizeBytes createdAt updatedAt } }";
 /** Generated wire call for Query ProjectDatasets. */
 export declare function projectDatasets(transport: Transport, vars: ProjectDatasetsVars): Promise<Array<Dataset>>;
 export interface QueryDatasetVars {

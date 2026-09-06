@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package whodb
 
 import (
@@ -29,6 +45,13 @@ type ListOptions struct {
 	Sort     []map[string]any
 	PageSize int
 	Offset   int
+}
+
+// ActionOptions configures optimistic concurrency and safe retries for a
+// named ontology action.
+type ActionOptions struct {
+	ExpectedVersion *int
+	IdempotencyKey  string
 }
 
 // EntityMeta resolves and caches the entity metadata backing this handle.
@@ -215,6 +238,111 @@ func toRecordInputs(values map[string]any) []map[string]string {
 		records = append(records, map[string]string{"Key": key, "Value": encoded})
 	}
 	return records
+}
+
+// Capabilities computes the current actor's readable fields and allowed actions.
+func (h *OntologyHandle) Capabilities(ctx context.Context, recordKey any) (map[string]any, error) {
+	entityID, err := h.entityID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	warnIfFlagged("OntologyRecordCapabilities")
+	projectID, err := h.client.projectID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	variables := map[string]any{"projectId": projectID, "ontologyId": entityID}
+	if recordKey != nil {
+		variables["recordKey"] = fmt.Sprint(recordKey)
+	}
+	result, err := h.client.execute(ctx, gen.NewOntologyRecordCapabilitiesRequest(variables))
+	if err != nil {
+		return nil, err
+	}
+	capabilities, _ := result.(map[string]any)
+	return capabilities, nil
+}
+
+// PreviewAction dry-runs a named action without persisting records, effects, or events.
+func (h *OntologyHandle) PreviewAction(ctx context.Context, action string, recordKey any, values map[string]any) (map[string]any, error) {
+	entityID, err := h.entityID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	warnIfFlagged("PreviewOntologyAction")
+	projectID, err := h.client.projectID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	input := map[string]any{"projectId": projectID, "ontologyId": entityID, "action": action, "values": values}
+	if recordKey != nil {
+		input["recordKey"] = fmt.Sprint(recordKey)
+	}
+	result, err := h.client.execute(ctx, gen.NewPreviewOntologyActionRequest(map[string]any{"input": input}))
+	if err != nil {
+		return nil, err
+	}
+	preview, _ := result.(map[string]any)
+	return preview, nil
+}
+
+// Action executes a named action with full behavior enforcement.
+func (h *OntologyHandle) Action(ctx context.Context, action string, recordKey any, values map[string]any, options ActionOptions) (map[string]any, error) {
+	entityID, err := h.entityID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	warnIfFlagged("ExecuteOntologyAction")
+	projectID, err := h.client.projectID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	input := map[string]any{"projectId": projectID, "ontologyId": entityID, "action": action, "values": values}
+	if recordKey != nil {
+		input["recordKey"] = fmt.Sprint(recordKey)
+	}
+	if options.ExpectedVersion != nil {
+		input["expectedVersion"] = *options.ExpectedVersion
+	}
+	if options.IdempotencyKey != "" {
+		input["idempotencyKey"] = options.IdempotencyKey
+	}
+	result, err := h.client.execute(ctx, gen.NewExecuteOntologyActionRequest(map[string]any{"input": input}))
+	if err != nil {
+		return nil, err
+	}
+	actionResult, _ := result.(map[string]any)
+	return actionResult, nil
+}
+
+// ActionExecutions lists recent named-action executions for one record.
+func (h *OntologyHandle) ActionExecutions(ctx context.Context, recordKey any, limit int) ([]map[string]any, error) {
+	entityID, err := h.entityID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	warnIfFlagged("OntologyActionExecutions")
+	projectID, err := h.client.projectID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 {
+		limit = 50
+	}
+	result, err := h.client.execute(ctx, gen.NewOntologyActionExecutionsRequest(map[string]any{
+		"projectId": projectID, "ontologyId": entityID, "recordKey": fmt.Sprint(recordKey), "limit": limit,
+	}))
+	if err != nil {
+		return nil, err
+	}
+	entries, _ := result.([]any)
+	executions := make([]map[string]any, 0, len(entries))
+	for _, entry := range entries {
+		if execution, ok := entry.(map[string]any); ok {
+			executions = append(executions, execution)
+		}
+	}
+	return executions, nil
 }
 
 // Create inserts one record. Values are field name/value pairs.

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.clidey.whodb.conformance;
 
 import com.clidey.whodb.OntologyHandle;
@@ -189,6 +205,27 @@ public final class Main {
                         value = handle.list(listOptions);
                     }
                 }
+                case "capabilities" -> value = handle.capabilities(
+                    args.size() > 0 && !args.get(0).isNull() ? JSON.convertValue(args.get(0), Object.class) : null);
+                case "previewAction" -> value = handle.previewAction(
+                    args.get(0).asText(),
+                    args.get(1).isNull() ? null : JSON.convertValue(args.get(1), Object.class),
+                    JSON.convertValue(args.get(2), Map.class));
+                case "action" -> {
+                    JsonNode options = args.size() > 3 ? args.get(3) : JSON.createObjectNode();
+                    Integer expectedVersion = options.hasNonNull("expectedVersion")
+                        ? options.get("expectedVersion").asInt() : null;
+                    String idempotencyKey = options.hasNonNull("idempotencyKey")
+                        ? options.get("idempotencyKey").asText() : null;
+                    value = handle.action(
+                        args.get(0).asText(),
+                        args.get(1).isNull() ? null : JSON.convertValue(args.get(1), Object.class),
+                        JSON.convertValue(args.get(2), Map.class),
+                        new OntologyHandle.ActionOptions(expectedVersion, idempotencyKey));
+                }
+                case "actionExecutions" -> value = handle.actionExecutions(
+                    JSON.convertValue(args.get(0), Object.class),
+                    args.size() > 1 ? args.get(1).asInt() : 50);
                 case "create" -> handle.create(JSON.convertValue(args.get(0), Map.class));
                 case "createMany" -> {
                     List<Map<String, Object>> rows = JSON.convertValue(args.get(0), List.class);

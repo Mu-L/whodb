@@ -41,6 +41,7 @@ type GenericWriteSpec struct {
 	Mutation        string
 	Mode            GenericWriteMode
 	NeedsID         bool
+	IdentityField   string
 	InjectProjectID bool
 }
 
@@ -79,6 +80,8 @@ var GenericWriteSpecs = map[string]GenericWriteSpec{
 	"action:add_record:ontology":                  {Resource: "ontology", Action: "add_record", Mutation: "OntologyAddRow", Mode: GenericWriteModeDirect, NeedsID: true, InjectProjectID: true},
 	"action:update_record:ontology":               {Resource: "ontology", Action: "update_record", Mutation: "OntologyUpdateRow", Mode: GenericWriteModeDirect, NeedsID: true, InjectProjectID: true},
 	"action:delete_record:ontology":               {Resource: "ontology", Action: "delete_record", Mutation: "OntologyDeleteRow", Mode: GenericWriteModeDirect, NeedsID: true, InjectProjectID: true},
+	"action:save_behavior:ontology":               {Resource: "ontology", Action: "save_behavior", Mutation: "SaveBehavior", Mode: GenericWriteModeInput, NeedsID: true, IdentityField: "ontologyId", InjectProjectID: true},
+	"action:execute_behavior:ontology":            {Resource: "ontology", Action: "execute_behavior", Mutation: "ExecuteOntologyAction", Mode: GenericWriteModeInput, NeedsID: true, IdentityField: "ontologyId", InjectProjectID: true},
 	"create:dataset":                              {Resource: "dataset", Action: "create", Mutation: "CreateDataset", Mode: GenericWriteModeInput, InjectProjectID: true},
 	"update:dataset":                              {Resource: "dataset", Action: "update", Mutation: "UpdateDataset", Mode: GenericWriteModeInput, NeedsID: true, InjectProjectID: true},
 	"delete:dataset":                              {Resource: "dataset", Action: "delete", Mutation: "DeleteDataset", Mode: GenericWriteModeProjectID, NeedsID: true},
@@ -272,6 +275,25 @@ var PayloadShapes = map[string]PayloadShape{
 			{Name: "values", Type: "[RecordInput]", Required: true, Description: "Matcher values, usually primary key values"},
 		},
 		Examples: []string{`{"values":[{"Key":"id","Value":"1"}]}`},
+	},
+	"action:save_behavior:ontology": {
+		Key: "action:save_behavior:ontology", Resource: "ontology", Action: "save_behavior", Description: "Save and activate an ontology behavior. Validation, tests, versioning, and activation happen internally; ontologyId and projectId are injected.",
+		Fields: []PayloadField{
+			{Name: "document", Type: "JSON", Required: true, Description: "Canonical behavior document"},
+			{Name: "expectedRevision", Type: "integer", Required: true, Description: "Current revision used for optimistic concurrency"},
+		},
+		Examples: []string{`{"document":{"api_name":"order","ontology_id":"ontology_123","actions":{}},"expectedRevision":0}`},
+	},
+	"action:execute_behavior:ontology": {
+		Key: "action:execute_behavior:ontology", Resource: "ontology", Action: "execute_behavior", Description: "Execute an active ontology behavior action. ontologyId and projectId are injected.",
+		Fields: []PayloadField{
+			{Name: "recordKey", Type: "string", Description: "Primary record key; omit for create actions"},
+			{Name: "action", Type: "string", Required: true, Description: "Behavior action API name"},
+			{Name: "values", Type: "JSON", Required: true, Description: "Action input values"},
+			{Name: "expectedVersion", Type: "integer", Description: "Expected record version for optimistic concurrency"},
+			{Name: "idempotencyKey", Type: "string", Description: "Idempotency key for idempotent actions"},
+		},
+		Examples: []string{`{"recordKey":"order-1","action":"approve","values":{},"expectedVersion":1}`},
 	},
 	"action:run:transform": {
 		Key: "action:run:transform", Resource: "transform", Action: "run", Description: "Run an existing transform. id and projectId are injected.",

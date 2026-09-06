@@ -1,5 +1,5 @@
 import type { Transport } from './transport.js';
-import type { OntologyDescription, OntologyFastLookup, OntologyObjectType, OntologyStatsResult, OntologySimilarInput, OntologySimilarityResult, OntologyQueryInput, OntologyQuerySortInput, OntologyAggregateMetricInput, WhereCondition, SortCondition, OntologyAddRowsResult } from './generated/types.js';
+import type { OntologyDescription, OntologyFastLookup, OntologyObjectType, OntologyStatsResult, OntologySimilarInput, OntologySimilarityResult, OntologyQueryInput, OntologyQuerySortInput, OntologyAggregateMetricInput, WhereCondition, SortCondition, OntologyAddRowsResult, ExecuteOntologyActionResult, OntologyActionExecution, OntologyActionPreview, OntologyRecordCapabilities } from './generated/types.js';
 import { type Row } from './hydrate.js';
 import { ListCall } from './pagination.js';
 /** Options for list-shaped ontology reads. `where` is a JSON filter object
@@ -19,6 +19,11 @@ export interface AggregateOptions {
     where?: WhereCondition;
     sort?: SortCondition[];
     pageSize?: number;
+}
+/** Concurrency and retry controls for a named ontology action. */
+export interface ActionOptions {
+    expectedVersion?: number;
+    idempotencyKey?: string;
 }
 /**
  * OntologyHandle is the `whodb.ontology("User")` facade: reads and record
@@ -60,6 +65,14 @@ export declare class OntologyHandle {
     }): ListCall;
     /** Lists the entity's fast lookups. */
     fastLookups(): Promise<OntologyFastLookup[]>;
+    /** Computes the current actor's readable fields and allowed actions. */
+    capabilities(recordKey?: string | number): Promise<OntologyRecordCapabilities>;
+    /** Dry-runs a named action without persisting records, effects, or events. */
+    previewAction(action: string, recordKey: string | number | null, values?: Record<string, unknown>): Promise<OntologyActionPreview>;
+    /** Executes a named action with full behavior enforcement. */
+    action(action: string, recordKey: string | number | null, values?: Record<string, unknown>, options?: ActionOptions): Promise<ExecuteOntologyActionResult>;
+    /** Lists recent named-action executions for one record. */
+    actionExecutions(recordKey: string | number, limit?: number): Promise<OntologyActionExecution[]>;
     /** Inserts one record. Values are field name/value pairs. */
     create(values: Record<string, unknown>): Promise<void>;
     /** Inserts many records; idempotencyKey makes safe retries possible. */

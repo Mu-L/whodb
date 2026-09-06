@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Clidey, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { request as httpRequest } from 'node:http';
 import type { Transport } from './transport.js';
 import { NotFoundError, PlatformError, TransportCapabilityError } from './errors.js';
@@ -144,6 +160,37 @@ export class IpcTransport implements Transport {
         sort: variables.sort,
         pageSize: variables.pageSize,
         offset: variables.pageOffset,
+      }),
+    OntologyRecordCapabilities: async (variables) =>
+      this.post('/capabilities', {
+        entity: await this.entityName(String(variables.ontologyId)),
+        recordKey: variables.recordKey,
+      }),
+    PreviewOntologyAction: async (variables) => {
+      const input = (variables.input as Record<string, unknown>) ?? {};
+      return this.post('/preview_action', {
+        entity: await this.entityName(String(input.ontologyId)),
+        action: input.action,
+        recordKey: input.recordKey,
+        values: input.values,
+      });
+    },
+    ExecuteOntologyAction: async (variables) => {
+      const input = (variables.input as Record<string, unknown>) ?? {};
+      return this.post('/action', {
+        entity: await this.entityName(String(input.ontologyId)),
+        action: input.action,
+        recordKey: input.recordKey,
+        values: input.values,
+        expectedVersion: input.expectedVersion,
+        idempotencyKey: input.idempotencyKey,
+      });
+    },
+    OntologyActionExecutions: async (variables) =>
+      this.post('/action_executions', {
+        entity: await this.entityName(String(variables.ontologyId)),
+        recordKey: variables.recordKey,
+        limit: variables.limit,
       }),
     OntologyAddRow: async (variables) => {
       await this.post('/create', {

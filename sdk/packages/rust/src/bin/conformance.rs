@@ -1,3 +1,17 @@
+// Copyright 2026 Clidey, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //! Rust SDK fixture runner: reads fixtures as JSON lines on stdin, executes
 //! each against the SDK with a mock transport, writes one JSON result line
 //! per fixture to stdout. Protocol shared with the other language runners.
@@ -6,7 +20,7 @@ use serde_json::{json, Map, Value};
 use std::io::{self, BufRead, Write};
 use std::sync::Mutex;
 
-use whodb_sdk::{Client, Config, Error, ListOptions, Transport};
+use whodb_sdk::{ActionOptions, Client, Config, Error, ListOptions, Transport};
 
 /// Replays a fixture's scripted transcript, asserting each request.
 struct MockTransport {
@@ -200,6 +214,45 @@ fn run_fixture(fixture: &Value) -> Value {
                 Ok(rows_to_value(handle.list(&options)?))
             }
         }
+        "capabilities" => handle.capabilities(args.first().and_then(Value::as_str)),
+        "previewAction" => {
+            let action = args.first().and_then(Value::as_str).unwrap_or("");
+            let record_key = args.get(1).and_then(Value::as_str);
+            let values = args
+                .get(2)
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default();
+            handle.preview_action(action, record_key, &values)
+        }
+        "action" => {
+            let action = args.first().and_then(Value::as_str).unwrap_or("");
+            let record_key = args.get(1).and_then(Value::as_str);
+            let values = args
+                .get(2)
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default();
+            let options = args.get(3).and_then(Value::as_object);
+            handle.action(
+                action,
+                record_key,
+                &values,
+                &ActionOptions {
+                    expected_version: options
+                        .and_then(|item| item.get("expectedVersion"))
+                        .and_then(Value::as_i64),
+                    idempotency_key: options
+                        .and_then(|item| item.get("idempotencyKey"))
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                },
+            )
+        }
+        "actionExecutions" => handle.action_executions(
+            args.first().and_then(Value::as_str).unwrap_or(""),
+            args.get(1).and_then(Value::as_u64).unwrap_or(50) as usize,
+        ),
         "create" => {
             let values = args
                 .first()
